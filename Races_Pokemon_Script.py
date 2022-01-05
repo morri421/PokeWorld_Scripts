@@ -117,25 +117,6 @@ def GetDescription(descriptionFile):
         description = desc1.strip()
     return description
 
-def GetGeneration(i):
-    if(i < 151):
-        generation = 1
-    elif(i < 251):
-        generation = 2
-    elif (i < 386):
-        generation = 3
-    elif (i < 493):
-        generation = 4
-    elif (i < 649):
-        generation = 5
-    elif (i < 721):
-        generation = 6
-    elif (i < 809):
-        generation = 7
-    else:
-        generation = 8
-    return generation
-
 def GetDrawSize(size, sizeMult):
     return LagrangeInterpolSize(size) * sizeMult
 
@@ -202,13 +183,14 @@ def GetTradeTags(rarity, evolutionTier, isBaby, isLegendary, isFossil, isParticu
         tradeTags=["PW_PokemonCommon"]
     return tradeTags
 
-def FixNameIfNidoran(fullName, defName):
+def FixNameIfNeeded(fullName, defName):
     if(defName == "NidoranM"):
         return "Nidoran♂"
-    elif(defName == "NidoranF"):
+    if(defName == "NidoranF"):
         return "Nidoran♀"
-    else:
-        return fullName
+    if(defName == "Flabebe"):
+        return "Flabébé"
+    return fullName
 
 def GetCSVData(filePath):
     data = pd.read_csv(filePath, keep_default_na=False, encoding = "latin1")    
@@ -243,7 +225,7 @@ def GetGlow(type1):
     return [flag, colors]
 
 def main():  
-    PokemonData = GetCSVData("Data/DataPokemon.csv")   
+    PokemonData = GetCSVData("Data/DataPokemon_gen8.csv")   
     EvolutionData = GetCSVData("Data/DataEvolutions.csv")
     with open("Data/DataMoves.json", "r", encoding = "utf8") as f:
         MoveData = json.load(f)
@@ -261,23 +243,14 @@ def main():
     evolRequiredTime = list(EvolutionData.Time)
     evolRequiredGender = list(EvolutionData.Gender)
     evolRequiredItem = list(EvolutionData.Item)
-
+    otherEvoRequirements = list(EvolutionData.Other)
     evolutions = list(zip(evolvingTo, evolvingFrom, evolRequirement, evolLevelMin, 
-        evolFriendshipMin, evolRequiredTime, evolRequiredGender, evolRequiredItem))
-
-    otherEvoRequirements = {
-        "Hitmonlee" : "attack",
-        "Hitmonchan": "defense",
-        "Hitmontop" : "balanced"
-    }
+        evolFriendshipMin, evolRequiredTime, evolRequiredGender, evolRequiredItem,otherEvoRequirements))
 
     with open("Data/forms.json", "r") as f:
         formsData = json.load(f)
 
     hasForm = list(formsData.keys())
-    
-    for name in [name for name in defNameList if name not in otherEvoRequirements.keys()]:
-        otherEvoRequirements[name] = "none"
     
     #movesPokemonId = list(MoveData.DexNumber)
     #movesName = list(MoveData.Moves)
@@ -349,11 +322,11 @@ def main():
         eggLayDays = PokemonData.EggLayTime[i]
         catchRate = PokemonData.CatchRate[i]
         expYield = PokemonData.ExpYield[i]
+        generation = PokemonData.Generation[i] 
                
         """Computing other values based on the data"""
-        pokemonFullName = FixNameIfNidoran(pokemonFullName, pokemonDefName)      
-        tradeTags = GetTradeTags(rarity, evolutionTier, isBaby, isLegendary, isFossil, isParticular) 
-        generation = GetGeneration(i)              
+        pokemonFullName = FixNameIfNeeded(pokemonFullName, pokemonDefName)      
+        tradeTags = GetTradeTags(rarity, evolutionTier, isBaby, isLegendary, isFossil, isParticular)                    
         texPath = f"Things/Pawn/Pokemon/Gen_{generation}/"
         ComfyTemperatureMin = GetMinimumComfortableTemperature(type1, type2)
         ComfyTemperatureMax = GetMaximumComfortableTemperature(type1, type2)      
@@ -418,17 +391,21 @@ def main():
         if currentPokemonEvos:
             evolutions_EL = SubElement(li, "evolutions")
             for evolution in currentPokemonEvos:
-                evoTo, evoFrom, evoReq, evoLevelMin, evoFriendship, evoTime, evoGender, evoItem = evolution
+                evoTo, evoFrom, evoReq, evoLevelMin, evoFriendship, evoTime, evoGender, evoItem, evoOther = evolution
 
                 sub1Li = SubElement(evolutions_EL, "li")
                 SubElement(sub1Li, "pawnKind").text = "PW_" + evoTo
                 SubElement(sub1Li, "requirement").text = evoReq
                 if evoReq == "level":
-                    SubElement(sub1Li, "otherRequirement").text = otherEvoRequirements[evoTo]
                     SubElement(sub1Li, "level").text = str(evoLevelMin)
-                    SubElement(sub1Li, "friendship").text = str(evoFriendship)
-                    SubElement(sub1Li, "timeOfDay").text = evoTime
-                    SubElement(sub1Li, "gender").text = evoGender
+                    if(evoOther != ""):
+                        SubElement(sub1Li, "otherRequirement").text = evoOther
+                    if(evoFriendship != ""):              
+                        SubElement(sub1Li, "friendship").text = str(evoFriendship)
+                    if(evoTime != ""):   
+                        SubElement(sub1Li, "timeOfDay").text = evoTime
+                    if(evoGender != ""):   
+                        SubElement(sub1Li, "gender").text = evoGender
                 else:
                     SubElement(sub1Li, "item").text = "PW_" + evoItem
             

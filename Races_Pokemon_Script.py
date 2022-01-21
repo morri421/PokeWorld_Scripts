@@ -225,9 +225,9 @@ def GetGlow(type1):
     return [flag, colors]
 
 def main():  
-    PokemonData = GetCSVData("Data/DataPokemon_gen8.csv")   
+    PokemonData = GetCSVData("Data/DataPokemon.csv")   
     EvolutionData = GetCSVData("Data/DataEvolutions.csv")
-    useOldMove = True
+    useOldMove = False
     if(useOldMove == True):
         MoveData = GetCSVData("Data/DataMovesOld.csv")
     else:
@@ -255,9 +255,6 @@ def main():
         formsData = json.load(f)
 
     hasForm = list(formsData.keys())
-    
-    for name in [name for name in defNameList if name not in otherEvoRequirements.keys()]:
-        otherEvoRequirements[name] = "none"
     
     if(useOldMove == True):
         movesPokemonId = list(MoveData.DexNumber)
